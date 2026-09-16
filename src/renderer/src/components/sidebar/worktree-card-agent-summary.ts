@@ -36,6 +36,7 @@ function getSummaryAgentDotState(
   return displayStateByPaneKey?.[agent.paneKey] ?? getAgentDotState(agent)
 }
 
+/** Return the lower-case status phrase used in compact agent summaries. */
 export function formatSummaryStateLabel(state: AgentDotState): string {
   switch (state) {
     case 'waiting':
