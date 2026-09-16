@@ -27,6 +27,13 @@ export function getAgentDotState(agent: DashboardAgentRowData): AgentDotState {
   return agentRowDotState(agent.state, agent.entry.workingMode)
 }
 
+function getSummaryAgentDotState(
+  agent: DashboardAgentRowData,
+  displayStateByPaneKey?: Readonly<Record<string, AgentDotState>>
+): AgentDotState {
+  return displayStateByPaneKey?.[agent.paneKey] ?? getAgentDotState(agent)
+}
+
 export function formatSummaryStateLabel(state: AgentDotState): string {
   switch (state) {
     case 'waiting':
@@ -52,10 +59,13 @@ export function formatSummaryStateLabel(state: AgentDotState): string {
   }
 }
 
-export function buildSummaryAgentGroups(agents: DashboardAgentRowData[]): SummaryAgentGroup[] {
+export function buildSummaryAgentGroups(
+  agents: DashboardAgentRowData[],
+  displayStateByPaneKey?: Readonly<Record<string, AgentDotState>>
+): SummaryAgentGroup[] {
   const groups = new Map<AgentDotState, DashboardAgentRowData[]>()
   for (const agent of agents) {
-    const dotState = getAgentDotState(agent)
+    const dotState = getSummaryAgentDotState(agent, displayStateByPaneKey)
     const group = groups.get(dotState)
     if (group) {
       group.push(agent)
@@ -69,10 +79,14 @@ export function buildSummaryAgentGroups(agents: DashboardAgentRowData[]): Summar
   })
 }
 
-export function summarizeAgents(agents: DashboardAgentRowData[], subjectLabel: string): string {
+export function summarizeAgents(
+  agents: DashboardAgentRowData[],
+  subjectLabel: string,
+  displayStateByPaneKey?: Readonly<Record<string, AgentDotState>>
+): string {
   const counts = new Map<AgentDotState, number>()
   for (const agent of agents) {
-    const dotState = getAgentDotState(agent)
+    const dotState = getSummaryAgentDotState(agent, displayStateByPaneKey)
     counts.set(dotState, (counts.get(dotState) ?? 0) + 1)
   }
   const parts = SUMMARY_STATE_ORDER.flatMap((state) => {
@@ -92,11 +106,16 @@ export function summarizeAgents(agents: DashboardAgentRowData[], subjectLabel: s
   return `${subjectLabel}: ${parts.join(', ')}`
 }
 
-export function summarizeAgentIdentities(agents: DashboardAgentRowData[]): string {
+export function summarizeAgentIdentities(
+  agents: DashboardAgentRowData[],
+  displayStateByPaneKey?: Readonly<Record<string, AgentDotState>>
+): string {
   return agents
     .map((agent) => {
       const agentLabel = formatAgentTypeLabel(agent.agentType)
-      const stateLabel = formatSummaryStateLabel(getAgentDotState(agent))
+      const stateLabel = formatSummaryStateLabel(
+        getSummaryAgentDotState(agent, displayStateByPaneKey)
+      )
       return `${agentLabel} ${stateLabel}`
     })
     .join('; ')
