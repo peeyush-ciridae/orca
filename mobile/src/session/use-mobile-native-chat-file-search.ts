@@ -96,23 +96,20 @@ export function useMobileNativeChatFileSearch(args: {
           }
           setNativeChatFilePaths(paths)
         }
-        // What retires the inventory: this host, this workspace, this logical authority. A
-        // reconnect to the same host leaves the files on disk alone, so the physical session
-        // epoch is deliberately not in it.
-        const inventoryScope = (): RequestScope => [
-          client,
-          worktreeId,
-          client.getGeneration?.() ?? 0
-        ]
         const loadLegacyPaths = async (): Promise<void> => {
-          const held = inventory.read(inventoryScope(), WHOLE_WORKSPACE)
+          // What retires the inventory: this host, this workspace, this logical authority. A
+          // reconnect to the same host leaves the files on disk alone, so the physical session
+          // epoch is deliberately not in it. Read once, so a cutover between the two calls below
+          // cannot put one attempt in two scopes.
+          const inventoryScope: RequestScope = [client, worktreeId, client.getGeneration?.() ?? 0]
+          const held = inventory.read(inventoryScope, WHOLE_WORKSPACE)
           if (held) {
             applyPaths(rankSuggestions(held, normalizedQuery, FILE_SEARCH_RESULT_LIMIT))
             return
           }
           // Why: older hosts expose only the full inventory RPC; queries that
           // overlap its slow local/SSH read must share one request.
-          const loaded = await inventory.load(inventoryScope(), WHOLE_WORKSPACE, async () => {
+          const loaded = await inventory.load(inventoryScope, WHOLE_WORKSPACE, async () => {
             const response = await nativeChatFileInventoryRead.request(client, {
               worktree: `id:${worktreeId}`
             })
