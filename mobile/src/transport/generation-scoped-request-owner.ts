@@ -35,8 +35,8 @@ export type RequestLease<Value> = {
   readonly [LEASE_VALUE]?: (value: Value) => void
 }
 
-/** Named rather than boolean: a caller cannot tell a retired generation from a disposed owner. */
-export type RequestCommitVerdict = 'committed' | 'retired-generation' | 'foreign-owner' | 'disposed'
+/** Named rather than boolean: a refused publish says which fence refused it. */
+type RequestCommitVerdict = 'committed' | 'retired-generation' | 'foreign-owner'
 
 /**
  * What retires a request: the workspace identity plus whichever epoch signals this owner treats as
@@ -45,7 +45,7 @@ export type RequestCommitVerdict = 'committed' | 'retired-generation' | 'foreign
 export type RequestScope = readonly unknown[]
 
 /** The domain half of a key. The owner supplies the scope half, so two workspaces cannot share one. */
-export type RequestParameters = Readonly<Record<string, string | number | boolean>>
+type RequestParameters = Readonly<Record<string, string | number | boolean>>
 
 export type LoadedRequest<Value> = {
   readonly lease: RequestLease<Value>
@@ -75,20 +75,13 @@ export class GenerationScopedRequestOwner<Params extends RequestParameters, Valu
   private referenceCount = 0
   private currentGeneration = 0
   private observedScope: string | null = null
-  private disposed = false
 
-  constructor(private readonly capacity = Number.POSITIVE_INFINITY) {}
-
-  /** Read-only signal: the generation every live lease belongs to. */
-  get generation(): number {
-    return this.currentGeneration
-  }
-
-  /** What this owner holds for these parameters, or nothing once the scope moved. */
+  /**
+   * What this owner holds for these parameters, or nothing once the scope moved. Not a getter: an
+   * unseen scope retires everything held and advances the generation before this answers, so it must
+   * not be called from render.
+   */
   read(scope: RequestScope, parameters: Params): Value | undefined {
-    if (this.disposed) {
-      return undefined
-    }
     return this.values.get(this.enter(scope, parameters))
   }
 
@@ -101,9 +94,6 @@ export class GenerationScopedRequestOwner<Params extends RequestParameters, Valu
     parameters: Params,
     fn: () => Promise<Value | null>
   ): Promise<LoadedRequest<Value> | null> {
-    if (this.disposed) {
-      return Promise.resolve(null)
-    }
     const key = this.enter(scope, parameters)
     const existing = this.inFlight.get(key)
     return existing ? existing.promise : this.start(key, fn)
@@ -115,31 +105,16 @@ export class GenerationScopedRequestOwner<Params extends RequestParameters, Valu
     if (state.owner !== this.owner) {
       return 'foreign-owner'
     }
-    if (this.disposed) {
-      return 'disposed'
-    }
     if (state.generation !== this.currentGeneration) {
       return 'retired-generation'
     }
     this.values.set(state.key, value)
-    while (this.values.size > this.capacity) {
-      const oldest = this.values.keys().next()
-      if (oldest.done) {
-        break
-      }
-      this.values.delete(oldest.value)
-    }
     return 'committed'
   }
 
   /** Bumps the generation even when the scope came back to where it started, as in A to B to A. */
   reset(): void {
     this.retire()
-  }
-
-  dispose(): void {
-    this.retire()
-    this.disposed = true
   }
 
   private start(

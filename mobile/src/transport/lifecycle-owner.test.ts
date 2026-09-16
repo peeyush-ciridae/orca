@@ -13,6 +13,7 @@ type Parameters = { readonly query: string }
 type Owner = GenerationScopedRequestOwner<Parameters, string[]>
 
 const QUERY: Parameters = { query: 'a' }
+const OTHER_QUERY: Parameters = { query: 'b' }
 
 /**
  * One request whose settlement the schedule controls. Every interleaving below is written as an
@@ -45,7 +46,7 @@ function scopeAt(workspace: string, authority: number, session?: number): Reques
 }
 
 describe('key-reset-cleanup', () => {
-  it('drops the cache and the in-flight identity together, and advances once', async () => {
+  it('drops the cache and the in-flight identity together', async () => {
     const owner: Owner = new GenerationScopedRequestOwner()
     const scope = scopeAt('w1', 1)
     const first = pending()
@@ -55,23 +56,32 @@ describe('key-reset-cleanup', () => {
     expect(owner.commit(lease.lease, lease.value)).toBe('committed')
     expect(owner.read(scope, QUERY)).toEqual(['a.ts'])
 
-    const before = owner.generation
+    // Still pending when the reset lands: this is the in-flight entry the next load must not join.
+    let started = 0
+    const crossing = pending()
+    const crossingLoaded = owner.load(scope, OTHER_QUERY, () => {
+      started++
+      return crossing.start()
+    })
+
     owner.reset()
-    expect(owner.generation).toBe(before + 1)
     expect(owner.read(scope, QUERY)).toBeUndefined()
 
-    // A second load must start its own request: the retired in-flight entry is not there to join.
-    let started = 0
     const second = pending()
-    const reloaded = owner.load(scope, QUERY, () => {
+    const reloaded = owner.load(scope, OTHER_QUERY, () => {
       started++
       return second.start()
     })
+    expect(started).toBe(2)
+
+    crossing.resolve(['crossed.ts'])
+    const crossed = await settled(crossingLoaded)
+    expect(owner.commit(crossed.lease, crossed.value)).toBe('retired-generation')
+
     second.resolve(['b.ts'])
     const reloadedLease = await settled(reloaded)
-    expect(started).toBe(1)
     expect(owner.commit(reloadedLease.lease, reloadedLease.value)).toBe('committed')
-    expect(owner.read(scope, QUERY)).toEqual(['b.ts'])
+    expect(owner.read(scope, OTHER_QUERY)).toEqual(['b.ts'])
   })
 })
 
@@ -188,7 +198,7 @@ describe('stale-inflight-cleanup', () => {
 })
 
 describe('owner boundaries', () => {
-  it('refuses a peer owner lease and everything after dispose', async () => {
+  it('refuses a peer owner lease', async () => {
     const owner: Owner = new GenerationScopedRequestOwner()
     const peer: Owner = new GenerationScopedRequestOwner()
     const scope = scopeAt('w1', 1)
@@ -198,25 +208,7 @@ describe('owner boundaries', () => {
     const lease = await settled(loaded)
 
     expect(peer.commit(lease.lease, lease.value)).toBe('foreign-owner')
-    owner.dispose()
-    expect(owner.commit(lease.lease, lease.value)).toBe('disposed')
-    expect(owner.read(scope, QUERY)).toBeUndefined()
-    await expect(owner.load(scope, QUERY, request.start)).resolves.toBeNull()
-  })
-
-  it('evicts by insertion order once the owner is at capacity', async () => {
-    const owner = new GenerationScopedRequestOwner<Parameters, string[]>(2)
-    const scope = scopeAt('w1', 1)
-    for (const query of ['one', 'two', 'three']) {
-      const request = pending()
-      const loaded = owner.load(scope, { query }, request.start)
-      request.resolve([`${query}.ts`])
-      const lease = await settled(loaded)
-      expect(owner.commit(lease.lease, lease.value)).toBe('committed')
-    }
-    expect(owner.read(scope, { query: 'one' })).toBeUndefined()
-    expect(owner.read(scope, { query: 'two' })).toEqual(['two.ts'])
-    expect(owner.read(scope, { query: 'three' })).toEqual(['three.ts'])
+    expect(peer.read(scope, QUERY)).toBeUndefined()
   })
 
   it('coalesces concurrent loads of one key onto one request', async () => {

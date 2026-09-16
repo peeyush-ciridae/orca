@@ -46,10 +46,5 @@ export function fenceLoaderOnlyReturns(): void {
   void paths.load(scope, { query: 'a' }, async () => null)
 }
 
-export function fenceGenerationIsReadOnly(): void {
-  // @ts-expect-error the generation is a signal the owner advances, not one a caller sets
-  paths.generation = 7
-}
-
 // @ts-expect-error the lease carries its generation privately; a caller cannot read or compare it
 export const fenceLeaseGenerationUnreadable: number = pathLease.generation
