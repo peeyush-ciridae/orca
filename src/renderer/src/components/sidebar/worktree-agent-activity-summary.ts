@@ -101,7 +101,8 @@ function getWorktreeAgentActivitySummaries(
   }
 
   const summaries = new Map<string, WorktreeAgentActivitySummary>()
-  const summaryForWorktree = (worktreeId: string): WorktreeAgentActivitySummary => {
+  /** Return the mutable accumulator for one worktree, creating it on first use. */
+  function summaryForWorktree(worktreeId: string): WorktreeAgentActivitySummary {
     let summary = summaries.get(worktreeId)
     if (!summary) {
       summary = { ...EMPTY_SUMMARY }
