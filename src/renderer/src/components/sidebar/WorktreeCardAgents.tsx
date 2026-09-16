@@ -74,6 +74,7 @@ type BodyProps = {
   className?: string
 }
 
+/** Render non-empty full or compact agent rows for a single worktree card. */
 const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
   worktreeId,
   agents,

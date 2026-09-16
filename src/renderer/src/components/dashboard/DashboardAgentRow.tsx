@@ -71,6 +71,7 @@ type Props = {
   onSendTargetClick?: (paneKey: string) => void
 }
 
+/** Render one dashboard or sidebar agent row with an optional presentation-only state. */
 const DashboardAgentRow = React.memo(function DashboardAgentRow({
   agent,
   onDismiss,

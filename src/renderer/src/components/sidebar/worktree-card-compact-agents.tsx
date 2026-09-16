@@ -76,6 +76,7 @@ export function CompactAgentExpansion({
   )
 }
 
+/** Render a collapsible compact summary using each agent's presentation state. */
 export function CompactAgentSummaryButton({
   agents,
   subjectLabel,

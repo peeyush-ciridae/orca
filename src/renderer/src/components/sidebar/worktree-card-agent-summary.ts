@@ -20,6 +20,7 @@ const SUMMARY_STATE_ORDER: AgentDotState[] = [
   'idle'
 ]
 
+/** Return the raw dot state reported by an agent row. */
 export function getAgentDotState(agent: DashboardAgentRowData): AgentDotState {
   if (agent.entry.interrupted === true) {
     return 'interrupted'
@@ -27,6 +28,7 @@ export function getAgentDotState(agent: DashboardAgentRowData): AgentDotState {
   return agentRowDotState(agent.state, agent.entry.workingMode)
 }
 
+/** Resolve a summary state, preferring the card's acknowledgement-aware presentation map. */
 function getSummaryAgentDotState(
   agent: DashboardAgentRowData,
   displayStateByPaneKey?: Readonly<Record<string, AgentDotState>>
@@ -59,6 +61,7 @@ export function formatSummaryStateLabel(state: AgentDotState): string {
   }
 }
 
+/** Group agents by their displayed state in the stable summary priority order. */
 export function buildSummaryAgentGroups(
   agents: DashboardAgentRowData[],
   displayStateByPaneKey?: Readonly<Record<string, AgentDotState>>
@@ -79,6 +82,7 @@ export function buildSummaryAgentGroups(
   })
 }
 
+/** Build the compact aggregate status label for a set of displayed agents. */
 export function summarizeAgents(
   agents: DashboardAgentRowData[],
   subjectLabel: string,
@@ -106,6 +110,7 @@ export function summarizeAgents(
   return `${subjectLabel}: ${parts.join(', ')}`
 }
 
+/** Build the accessible identity and displayed-state description for a compact summary. */
 export function summarizeAgentIdentities(
   agents: DashboardAgentRowData[],
   displayStateByPaneKey?: Readonly<Record<string, AgentDotState>>

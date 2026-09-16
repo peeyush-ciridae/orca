@@ -13,6 +13,7 @@ function makeStatusState(): StatusState {
     terminalLayoutsByTabId: {},
     agentStatusEpoch: 0,
     agentStatusByPaneKey: {},
+    acknowledgedAgentsByPaneKey: {},
     migrationUnsupportedByPtyId: {},
     retainedAgentsByPaneKey: {},
     runtimeAgentOrchestrationByPaneKey: {}

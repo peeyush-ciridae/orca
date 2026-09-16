@@ -15,6 +15,7 @@ import { lastEnteredDoneAt } from '@/components/dashboard/agent-finished-timesta
 import CacheTimer, { usePromptCacheCountdownForPane } from './CacheTimer'
 import { formatShortTimeAgo } from '@/lib/short-time-ago'
 
+/** Choose the compact row's primary text using the displayed state as its fallback. */
 function getCompactAgentPrimary(
   agent: DashboardAgentRowData,
   conversationName: string | null,
@@ -93,6 +94,7 @@ type CompactAgentRowProps = {
   displayState?: AgentDotState
 }
 
+/** Render one compact worktree agent row. */
 export const CompactAgentRow = React.memo(function CompactAgentRow({
   agent,
   now,

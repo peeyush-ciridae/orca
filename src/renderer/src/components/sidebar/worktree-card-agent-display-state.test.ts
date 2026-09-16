@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { DashboardAgentRow } from '@/components/dashboard/useDashboardData'
 import { worktreeAgentDisplayState } from './worktree-card-agent-display-state'
 
+/** Build a completed agent row for display-state contract tests. */
 function doneAgent(interrupted = false): DashboardAgentRow {
   return {
     paneKey: 'tab-1:leaf-1',
