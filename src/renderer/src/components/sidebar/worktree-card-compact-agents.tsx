@@ -38,6 +38,7 @@ type CompactAgentExpansionProps = {
   children: React.ReactNode
 }
 
+/** Keep expanded compact-agent content mounted long enough to animate collapse. */
 export function CompactAgentExpansion({
   expanded,
   contentClassName,

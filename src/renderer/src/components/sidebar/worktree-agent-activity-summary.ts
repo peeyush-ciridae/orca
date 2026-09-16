@@ -73,6 +73,7 @@ export function selectWorktreeAgentActivitySummary(
   return getWorktreeAgentActivitySummaries(state).get(worktreeId) ?? EMPTY_SUMMARY
 }
 
+/** Build or reuse acknowledgement-aware activity summaries for every worktree. */
 function getWorktreeAgentActivitySummaries(
   state: AgentActivityInput
 ): Map<string, WorktreeAgentActivitySummary> {
@@ -236,6 +237,7 @@ function agentStatusPaneIdsByTabIdEqual(
   return true
 }
 
+/** Fold one fresh live entry into its worktree summary. */
 function applyLiveAgentState(
   summary: WorktreeAgentActivitySummary,
   entry: Pick<AgentStatusEntry, 'state' | 'stateStartedAt' | 'workingMode' | 'interrupted'>,
